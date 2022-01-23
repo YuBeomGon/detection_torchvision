@@ -177,7 +177,6 @@ class GeneralizedRCNNTransform(nn.Module):
         image, target = _resize_image_and_masks(image, size, float(self.max_size), target, self.fixed_size)
 
         if target is None:
-            print('target is none')
             return image, target
 
         bbox = target["boxes"]

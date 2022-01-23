@@ -93,7 +93,6 @@ class GeneralizedRCNN(nn.Module):
                         "All bounding boxes should have positive height and width."
                         " Found invalid box {} for target at index {}.".format(degen_bb, target_idx)
                     )
-        print(targets)
 
         features = self.backbone(images.tensors)
         if isinstance(features, torch.Tensor):
