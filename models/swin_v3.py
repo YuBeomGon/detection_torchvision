@@ -293,8 +293,8 @@ class SwinTransformerBlock(nn.Module):
         self.window_size = window_size
         self.shift_size = shift_size
         self.mlp_ratio = mlp_ratio
-        self.H_ = int(input_resolution[0]/window_size[0])
-        self.W_ = int(input_resolution[1]/window_size[1])
+        self.H_ = int(input_resolution[0]/window_size)
+        self.W_ = int(input_resolution[1]/window_size)
         if min(self.input_resolution) <= self.window_size:
             # if window size is larger than input resolution, we don't partition windows
             self.shift_size = 0
@@ -308,7 +308,7 @@ class SwinTransformerBlock(nn.Module):
         
         if self.shift_size == 0:
             self.gattn = GlobalAttention(
-                dim, input_resolution=to_2tuple(input_resolution), num_heads=num_heads,
+                dim, resolution=(self.H_, self.W_), num_heads=num_heads,
                 qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop)        
 
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
@@ -359,7 +359,7 @@ class SwinTransformerBlock(nn.Module):
         # partition windows
         x_windows = window_partition(shifted_x, self.window_size)  # nW*B, window_size, window_size, C
         if self.shift_size == 0:
-            g_features =  x_windows.permute(0,3,1,2).flatten(2).mean(dim=-1).permute(0,2,1).view(B, -1, C) #B,num_windonws,C
+            g_features =  x_windows.permute(0,3,1,2).flatten(2).mean(dim=-1).view(B, -1, C) #B,num_windonws,C
         x_windows = x_windows.view(-1, self.window_size * self.window_size, C)  # nW*B, window_size*window_size, C
 
         # W-MSA/SW-MSA
@@ -369,8 +369,10 @@ class SwinTransformerBlock(nn.Module):
 
         # merge windows
         attn_windows = attn_windows.view(-1, self.window_size, self.window_size, C)
+        # print('attn_windows', attn_windows.shape)
         if self.shift_size == 0:
-            attn_windows = attn_windows.view(B, self.H_, self.W_, self.window_size, self.window_size, C) + g_attn(:,:,:,None,None,:)
+            attn_windows = attn_windows.view(B, -1 , self.window_size, self.window_size, C) + g_attn[:,:,None,None,:]
+            attn_windows = attn_windows.view(-1, self.window_size, self.window_size, C)
         shifted_x = window_reverse(attn_windows, self.window_size, H, W)  # B H' W' C
 
         # reverse cyclic shift
