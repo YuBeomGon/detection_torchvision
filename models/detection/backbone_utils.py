@@ -8,7 +8,7 @@ from ops.feature_pyramid_network import FeaturePyramidNetwork, LastLevelMaxPool,
 from .. import mobilenet
 from .. import resnet
 from .._utils import IntermediateLayerGetter
-from ..swin_v3 import *
+from ..swin import *
 
 
 class BackboneWithFPN(nn.Module):

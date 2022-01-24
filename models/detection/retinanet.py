@@ -23,6 +23,8 @@ from ._utils import overwrite_eps
 from .anchor_utils import AnchorGenerator
 from .backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
 from .transform import GeneralizedRCNNTransform
+from .backbone_utils import swin_fpn_backbone
+from ..swin import IMG_SIZE
 
 
 __all__ = ["RetinaNet", "retinanet_resnet50_fpn"]
@@ -648,6 +650,33 @@ def retinanet_resnet50_fpn(
     model = RetinaNet(backbone, num_classes, **kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls["retinanet_resnet50_fpn_coco"], progress=progress)
+        model.load_state_dict(state_dict)
+        overwrite_eps(model, 0.0)
+    return model
+
+
+def retinanet_swin_t_fpn(pretrained=False, progress=True,
+                           num_classes=91, pretrained_backbone=False, trainable_backbone_layers=None, **kwargs):
+    trainable_backbone_layers = _validate_trainable_layers(
+        pretrained or pretrained_backbone, trainable_backbone_layers, 5, 3)
+
+    if pretrained:
+        # no need to download the backbone if pretrained is set
+        pretrained_backbone = False
+        
+    anchor_sizes = ((32, 64, 128, 256, 512), ) * 5
+    aspect_ratios = ((0.5, 0.75, 1.0, 1.5, 2.0),) * len(anchor_sizes)
+    rpn_anchor_generator=AnchorGenerator(anchor_sizes, aspect_ratios)
+    
+    # skip P2 because it generates too many anchors (according to their paper)
+    backbone = swin_fpn_backbone('swin_t', pretrained_backbone, returned_layers=[2, 3, 4],
+                                   extra_blocks=LastLevelP6P7(256,256), trainable_layers=trainable_backbone_layers)
+    
+    model = RetinaNet(backbone, num_classes, anchor_generator=rpn_anchor_generator, 
+                      min_size=IMG_SIZE, max_size=IMG_SIZE, **kwargs)
+    if pretrained:
+        state_dict = load_state_dict_from_url(model_urls['retinanet_resnet50_fpn_coco'],
+                                              progress=progress)
         model.load_state_dict(state_dict)
         overwrite_eps(model, 0.0)
     return model
