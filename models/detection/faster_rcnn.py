@@ -15,6 +15,10 @@ from .generalized_rcnn import GeneralizedRCNN
 from .roi_heads import RoIHeads
 from .rpn import RPNHead, RegionProposalNetwork
 from .transform import GeneralizedRCNNTransform
+from .backbone_utils import swin_fpn_backbone, _swin_fpn_extractor
+from ..swin import *
+
+from torchvision_Detection.ops.feature_pyramid_network import LastLevelP6P7, LastLevelMaxPool
 
 
 __all__ = [
@@ -528,3 +532,26 @@ def fasterrcnn_mobilenet_v3_large_fpn(
         trainable_backbone_layers=trainable_backbone_layers,
         **kwargs,
     )
+
+
+def fasterrcnn_swin_t_fpn(
+    pretrained=False, progress=True, num_classes=91, pretrained_backbone=False, trainable_backbone_layers=None, **kwargs
+):
+    trainable_backbone_layers = _validate_trainable_layers(
+        pretrained or pretrained_backbone, trainable_backbone_layers, 5, 3
+    )
+
+    if pretrained:
+        # no need to download the backbone if pretrained is set
+        pretrained_backbone = False
+
+    # backbone = resnet50(pretrained=pretrained_backbone, progress=progress, norm_layer=misc_nn_ops.FrozenBatchNorm2d)
+    backbone = swin_t(hidden_dim=96, layers=(2, 2, 6, 2), heads=(3, 6, 12, 24))
+    backbone = _swin_fpn_extractor(backbone, trainable_backbone_layers)
+    
+    model = FasterRCNN(backbone, num_classes, **kwargs)
+    # if pretrained:
+    #     state_dict = load_state_dict_from_url(model_urls["fasterrcnn_resnet50_fpn_coco"], progress=progress)
+    #     model.load_state_dict(state_dict)
+    #     overwrite_eps(model, 0.0)
+    return model

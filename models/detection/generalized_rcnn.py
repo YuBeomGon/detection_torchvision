@@ -9,7 +9,8 @@ from typing import Tuple, List, Dict, Optional, Union
 import torch
 from torch import nn, Tensor
 
-from ...utils import _log_api_usage_once
+# from ...utils import _log_api_usage_once
+from torchvision_Detection.utils import _log_api_usage_once
 
 
 class GeneralizedRCNN(nn.Module):

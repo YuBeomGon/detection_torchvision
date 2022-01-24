@@ -252,6 +252,7 @@ def _swin_fpn_extractor(
 
     # in_channels_stage2 = backbone.inplanes // 8
     # in_channels_list = [in_channels_stage2 * 2 ** (i - 1) for i in returned_layers]
-    in_channels_list = [192, 384, 768]
+    in_channels_list = [192, 384, 768] # retinanet
+    in_channels_list = [96, 192, 384, 768] # faster RCNN
     out_channels = 256
     return BackboneWithFPN(backbone, return_layers, in_channels_list, out_channels, extra_blocks=extra_blocks)
