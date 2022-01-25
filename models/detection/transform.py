@@ -127,7 +127,7 @@ class GeneralizedRCNNTransform(nn.Module):
                 raise ValueError(
                     "images is expected to be a list of 3d tensors " "of shape [C, H, W], got {}".format(image.shape)
                 )
-            # image = self.normalize(image)
+            image = self.normalize(image)
             image, target_index = self.resize(image, target_index)
             images[i] = image
             if targets is not None and target_index is not None:
@@ -174,6 +174,7 @@ class GeneralizedRCNNTransform(nn.Module):
         else:
             # FIXME assume for now that testing uses the largest scale
             size = float(self.min_size[-1])
+            
         image, target = _resize_image_and_masks(image, size, float(self.max_size), target, self.fixed_size)
 
         if target is None:

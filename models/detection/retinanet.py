@@ -658,7 +658,8 @@ def retinanet_resnet50_fpn(
 def retinanet_swin_t_fpn(pretrained=False, progress=True,
                            num_classes=91, pretrained_backbone=False, trainable_backbone_layers=None, **kwargs):
     trainable_backbone_layers = _validate_trainable_layers(
-        pretrained or pretrained_backbone, trainable_backbone_layers, 5, 3)
+        pretrained or pretrained_backbone, trainable_backbone_layers, 6, 4)
+    print('trainable_backbone_layers', trainable_backbone_layers)
 
     if pretrained:
         # no need to download the backbone if pretrained is set

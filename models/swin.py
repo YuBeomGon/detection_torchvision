@@ -240,6 +240,8 @@ class SwinTransformerBlock(nn.Module):
     def forward(self, x):
         H, W = self.input_resolution
         B, L, C = x.shape
+        if L != H * W :
+            print('*************** L, H, W******************', L, H, W)
         assert L == H * W, "input feature has wrong size"
 
         shortcut = x
@@ -316,6 +318,8 @@ class PatchMerging(nn.Module):
         """
         H, W = self.input_resolution
         B, L, C = x.shape
+        if L != H * W :
+            print('*************** L, H, W', L, H, W)
         assert L == H * W, "input feature has wrong size"
         assert H % 2 == 0 and W % 2 == 0, f"x size ({H}*{W}) are not even."
 
@@ -453,9 +457,21 @@ class PatchEmbed(nn.Module):
 
     def forward(self, x):
         B, C, H, W = x.shape
+        # print('before padding', x.shape)
+        
         # FIXME look at relaxing size constraints
-        assert H == self.img_size[0] and W == self.img_size[1], \
-            f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
+        if H < self.img_size[0] :
+            x = F.pad(x, (0,0,0, self.img_size[0] - H))
+        if W < self.img_size[1] :
+            x = F.pad(x, (0, self.img_size[1] - W))
+        # print('patch_embed', x.shape)
+        
+        # if W % self.patch_size[1] != 0:
+        #     x = F.pad(x, (0, self.patch_size[1] - W % self.patch_size[1]))
+        # if H % self.patch_size[0] != 0:
+        #     x = F.pad(x, (0, 0, 0, self.patch_size[0] - H % self.patch_size[0]))        
+        # assert H == self.img_size[0] and W == self.img_size[1], \
+        #     f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
         x = self.proj(x).flatten(2).transpose(1, 2)  # B Ph*Pw C
         if self.norm is not None:
             x = self.norm(x)

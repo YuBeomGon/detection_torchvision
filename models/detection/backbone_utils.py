@@ -8,7 +8,8 @@ from ops.feature_pyramid_network import FeaturePyramidNetwork, LastLevelMaxPool,
 from .. import mobilenet
 from .. import resnet
 from .._utils import IntermediateLayerGetter
-from ..swin import *
+# from ..swin import *
+from ..swin_transformer import *
 
 
 class BackboneWithFPN(nn.Module):
@@ -57,6 +58,51 @@ class BackboneWithFPN(nn.Module):
         x = self.fpn(x)
         # print(x.keys())
         return x
+    
+class AttnBackboneWithFPN(nn.Module):
+    """
+    Adds a FPN on top of a model.
+    Internally, it uses torchvision.models._utils.IntermediateLayerGetter to
+    extract a submodel that returns the feature maps specified in return_layers.
+    The same limitations of IntermediateLayerGetter apply here.
+    Args:
+        backbone (nn.Module)
+        return_layers (Dict[name, new_name]): a dict containing the names
+            of the modules for which the activations will be returned as
+            the key of the dict, and the value of the dict is the name
+            of the returned activation (which the user can specify).
+        in_channels_list (List[int]): number of channels for each feature map
+            that is returned, in the order they are present in the OrderedDict
+        out_channels (int): number of channels in the FPN.
+    Attributes:
+        out_channels (int): the number of channels in the FPN
+    """
+
+    def __init__(
+        self,
+        backbone: nn.Module,
+        in_channels_list: List[int],
+        out_channels: int,
+        extra_blocks: Optional[ExtraFPNBlock] = None,
+    ) -> None:
+        super(AttnBackboneWithFPN, self).__init__()
+
+        if extra_blocks is None:
+            extra_blocks = LastLevelMaxPool()
+
+        self.body = backbone
+        self.fpn = FeaturePyramidNetwork(
+            in_channels_list=in_channels_list,
+            out_channels=out_channels,
+            extra_blocks=extra_blocks,
+        )
+        self.out_channels = out_channels
+
+    def forward(self, x: Tensor) -> Dict[str, Tensor]:
+        x = self.body(x)    
+        x = self.fpn(x)
+        # print(x.keys())
+        return x    
 
 
 def resnet_fpn_backbone(
@@ -218,14 +264,15 @@ def swin_fpn_backbone(
     backbone_name: str,
     pretrained: bool,
     norm_layer: Callable[..., nn.Module] = nn.LayerNorm,
-    trainable_layers: int = 3,
-    returned_layers: Optional[List[int]] = None,
+    trainable_layers: int = 4,
+    returned_layers: Optional[List[int]] = [2, 3, 4],
     extra_blocks: Optional[ExtraFPNBlock] = None,
 ) -> BackboneWithFPN:
 
     # backbone = resnet.__dict__[backbone_name](pretrained=pretrained, norm_layer=norm_layer)
     if backbone_name == 'swin_t' :
-        backbone = swin_t(hidden_dim=96, layers=(2, 2, 6, 2), heads=(3, 6, 12, 24))
+        backbone = SwinTransformer(embed_dim=96, depths=(2, 2, 6, 2), num_heads=(3, 6, 12, 24), 
+                                   return_layers=3 if returned_layers == None else len(returned_layers))
     return _swin_fpn_extractor(backbone, trainable_layers, returned_layers, extra_blocks)    
 
 def _swin_fpn_extractor(
@@ -236,23 +283,22 @@ def _swin_fpn_extractor(
 ) -> BackboneWithFPN:
 
     # select layers that wont be frozen
-    assert 0 <= trainable_layers <= 5
-    layers_to_train = ["layer4", "layer3", "layer2", "layer1", "patch_embed"][:trainable_layers]
+    assert 0 <= trainable_layers <= 6
+    layers_to_train = ["norm", "layer.4", "layer.3", "layer.2", "layer.1", "patch_embed"][:trainable_layers]
     for name, parameter in backbone.named_parameters():
         if all([not name.startswith(layer) for layer in layers_to_train]):
             parameter.requires_grad_(False)
+    if len(returned_layers) == 3:
+        for name, parameter in backbone.named_parameters():
+            if 'norm0' in name :
+                parameter.requires_grad_(False)
 
     if extra_blocks is None:
         extra_blocks = LastLevelMaxPool()
 
-    if returned_layers is None:
-        returned_layers = [1, 2, 3, 4]
-    assert min(returned_layers) > 0 and max(returned_layers) < 5
-    return_layers = {f"layer{k}": str(v) for v, k in enumerate(returned_layers)}
-
-    # in_channels_stage2 = backbone.inplanes // 8
-    # in_channels_list = [in_channels_stage2 * 2 ** (i - 1) for i in returned_layers]
-    in_channels_list = [192, 384, 768] # retinanet
-    in_channels_list = [96, 192, 384, 768] # faster RCNN
+    # in_channels_list = [192, 384, 768] # retinanet
+    # in_channels_list = [96, 192, 384, 768] # faster RCNN
+    in_channels_list = [96, 192, 384, 768]
+    in_channels_list = in_channels_list[4-len(returned_layers):]
     out_channels = 256
-    return BackboneWithFPN(backbone, return_layers, in_channels_list, out_channels, extra_blocks=extra_blocks)
+    return AttnBackboneWithFPN(backbone, in_channels_list, out_channels, extra_blocks=extra_blocks)
