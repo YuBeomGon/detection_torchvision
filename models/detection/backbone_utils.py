@@ -9,7 +9,8 @@ from .. import mobilenet
 from .. import resnet
 from .._utils import IntermediateLayerGetter
 # from ..swin import *
-from ..swin_transformer import *
+# from ..swin_transformer import *
+from ..swin_transformer_v2 import *
 
 
 class BackboneWithFPN(nn.Module):

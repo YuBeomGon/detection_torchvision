@@ -24,7 +24,7 @@ from .anchor_utils import AnchorGenerator
 from .backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
 from .transform import GeneralizedRCNNTransform
 from .backbone_utils import swin_fpn_backbone
-from ..swin import IMG_SIZE
+# from ..swin import IMG_SIZE
 
 
 __all__ = ["RetinaNet", "retinanet_resnet50_fpn"]
@@ -674,7 +674,7 @@ def retinanet_swin_t_fpn(pretrained=False, progress=True,
                                    extra_blocks=LastLevelP6P7(256,256), trainable_layers=trainable_backbone_layers)
     
     model = RetinaNet(backbone, num_classes, anchor_generator=rpn_anchor_generator, 
-                      min_size=IMG_SIZE, max_size=IMG_SIZE, **kwargs)
+                      **kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls['retinanet_resnet50_fpn_coco'],
                                               progress=progress)
