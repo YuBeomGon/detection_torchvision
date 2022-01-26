@@ -506,6 +506,7 @@ class SwinTransformer(nn.Module):
         self.patch_norm = patch_norm
         self.out_indices = out_indices
         self.frozen_stages = frozen_stages
+        print('frozen_stages', frozen_stages)
 
         # split image into non-overlapping patches
         self.patch_embed = PatchEmbed(
@@ -556,6 +557,13 @@ class SwinTransformer(nn.Module):
 
         self._freeze_stages()
         self.return_layers = return_layers
+        
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm, nn.LayerNorm)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
     def _freeze_stages(self):
         if self.frozen_stages >= 0:

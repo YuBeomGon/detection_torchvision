@@ -533,6 +533,7 @@ class RetinaNet(nn.Module):
 
         # get the features from the backbone
         features = self.backbone(images.tensors)
+        
         if isinstance(features, torch.Tensor):
             features = OrderedDict([("0", features)])
 
@@ -673,11 +674,11 @@ def retinanet_swin_t_fpn(pretrained=False, progress=True,
     backbone = swin_fpn_backbone('swin_t', pretrained_backbone, returned_layers=[2, 3, 4],
                                    extra_blocks=LastLevelP6P7(256,256), trainable_layers=trainable_backbone_layers)
     
-    model = RetinaNet(backbone, num_classes, anchor_generator=rpn_anchor_generator, 
+    model = RetinaNet(backbone, num_classes, anchor_generator=None, 
                       **kwargs)
-    if pretrained:
-        state_dict = load_state_dict_from_url(model_urls['retinanet_resnet50_fpn_coco'],
-                                              progress=progress)
-        model.load_state_dict(state_dict)
-        overwrite_eps(model, 0.0)
+    # if pretrained:
+    #     state_dict = load_state_dict_from_url(model_urls['retinanet_resnet50_fpn_coco'],
+    #                                           progress=progress)
+    #     model.load_state_dict(state_dict)
+    #     overwrite_eps(model, 0.0)
     return model
