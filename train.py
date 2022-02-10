@@ -37,6 +37,9 @@ import utils
 
 from models.detection.retinanet import retinanet_swin_t_fpn, retinanet_resnet50_fpn
 
+# os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"  # Arrange GPU devices starting from 0
+# os.environ["CUDA_VISIBLE_DEVICES"]= "3,4,5"  # Set the GPU 2 to use
+
 
 def get_dataset(name, image_set, transform, data_path):
     paths = {
@@ -63,9 +66,9 @@ def get_args_parser(add_help=True):
     parser.add_argument('--device', default='cuda', help='device')
     parser.add_argument('-b', '--batch-size', default=2, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
-    parser.add_argument('--epochs', default=40, type=int, metavar='N',
+    parser.add_argument('--epochs', default=26, type=int, metavar='N',
                         help='number of total epochs to run')
-    parser.add_argument('-j', '--workers', default=8, type=int, metavar='N',
+    parser.add_argument('-j', '--workers', default=16, type=int, metavar='N',
                         help='number of data loading workers (default: 4)')
     parser.add_argument('--lr', default=0.01, type=float,
                         help='initial learning rate, 0.02 is the default value for training '
@@ -76,9 +79,9 @@ def get_args_parser(add_help=True):
                         metavar='W', help='weight decay (default: 1e-4)',
                         dest='weight_decay')
     parser.add_argument('--lr-scheduler', default="multisteplr", help='the lr scheduler (default: multisteplr)')
-    parser.add_argument('--lr-step-size', default=10, type=int,
+    parser.add_argument('--lr-step-size', default=8, type=int,
                         help='decrease lr every step-size epochs (multisteplr scheduler only)')
-    parser.add_argument('--lr-steps', default=[10, 20, 30], nargs='+', type=int,
+    parser.add_argument('--lr-steps', default=[15, 22], nargs='+', type=int,
                         help='decrease lr every step-size epochs (multisteplr scheduler only)')
     parser.add_argument('--lr-gamma', default=0.2, type=float,
                         help='decrease lr by a factor of lr-gamma (multisteplr scheduler only)')
